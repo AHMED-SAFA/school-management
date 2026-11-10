@@ -1,3 +1,6 @@
+<img width="1883" height="847" alt="image" src="https://github.com/user-attachments/assets/91f41085-6097-4df6-a151-499fd5590430" />
+
+
 # School Admission System
 
 A robust, highly concurrent online school admission system built with **.NET 8**, **PostgreSQL**, **React 18+ (TypeScript & Vite)**, and **Docker**. Admissions operate on a strict **first-come, first-served** basis for limited seats per class shift. Applicants can hold seats temporarily, pay admission fees to confirm their admission, or let seats automatically release upon expiration.
