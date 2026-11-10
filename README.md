@@ -32,7 +32,7 @@ POSTGRES_DB=school_admission
 POSTGRES_PORT=5432
 
 # Backend Connection String (For local development or container)
-DATABASE_URL=Host=localhost;Port=5432;Database=school_admission;Username=postgres;Password=safa
+DATABASE_URL=Host=localhost;Port=5432;Database=school_admission;Username=postgres;Password=password
 
 # ==========================================
 # Backend Configuration
