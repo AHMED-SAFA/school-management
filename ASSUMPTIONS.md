@@ -1,27 +1,27 @@
 # ASSUMPTIONS & DESIGN DECISIONS
 
-## ১. পরিচয় ও প্রমাণীকরণ (Identity & Authentication)
-- সিস্টেমে কোনো পাসওয়ার্ড বা লগইন সিস্টেম রাখা হয়নি (প্রজেক্ট ব্রিফের নির্দেশনা অনুযায়ী)।
-- শিক্ষার্থীর পরিচয় নির্ধারণ করা হয় ১৭ অঙ্কের জন্ম নিবন্ধন নম্বর (`Birth Registration Number`) দ্বারা, যা API কলগুলোতে `X-Student-Id` হেডার হিসেবে প্রেরিত হয়।
-- ইউজার ইন্টারফেসে (UI) শিক্ষার্থীর ইনপুটকৃত জন্ম নিবন্ধন নম্বর ব্রাউজারের `localStorage`-এ সংরক্ষণ করা হয়। এর ফলে ব্রাউজার রিলোড বা বন্ধ করে পুনরায় খুললেও শিক্ষার্থীর তথ্য এবং আবেদনসমূহ সংরক্ষিত থাকে।
+## 1. Identity & Authentication
+- As explicitly instructed in the project brief, no password-based login system is used.
+- Student identity is represented by their 17-digit Birth Registration Number, transmitted via the `X-Student-Id` request header across all applicable API endpoints.
+- In the frontend UI, the entered birth registration number is stored in the browser's `localStorage`. As a result, page reloads or browser restarts preserve the student's active identity and ongoing applications without losing session context.
 
-## ২. শ্রেণি ও শিফট ব্যবস্থাপনা (Class & Shift Model)
-- প্রতিটি শ্রেণির প্রতিটি শিফট একটি স্বতন্ত্র শ্রেণি হিসেবে বিবেচিত (যেমন: "Class 6 - Morning Shift" এবং "Class 6 - Day Shift" দুটি সম্পূর্ণ আলাদা ক্লাস)।
-- প্রতিটি শ্রেণির নিজস্ব `totalSeats`, `heldSeats`, `confirmedSeats`, এবং `availableSeats` রয়েছে।
+## 2. Class & Shift Model
+- Each shift of a class is treated as an independent "class" instance with its own unique identifier and dedicated seat quota (e.g., "Class 6 - Morning Shift" and "Class 6 - Day Shift" are two separate class entities).
+- Each class tracks its own `totalSeats`, `heldSeats`, `confirmedSeats`, and `availableSeats`.
 
-## ৩. সিট হোল্ড এবং স্বয়ংক্রিয় এক্সপায়ারেশন (Seat Hold & Expiry)
-- `HOLD_DURATION_SECONDS` এনভায়রনমেন্ট ভেরিয়েবল দ্বারা সিট হোল্ডের সময়সীমা নির্ধারিত হয় (ডিফল্ট: ৬০০ সেকেন্ড / ১০ মিনিট)।
-- মেয়াদোত্তীর্ণ (expired) হোল্ড স্বয়ংক্রিয়ভাবে মুক্ত করার জন্য ডাটাবেস লেভেলে টাইমস্ট্যাম্প ভিত্তিক কোয়েরি ব্যবহৃত হয়। কোনো ব্যাকগ্রাউন্ড ক্রন জব বা এক্সটার্নাল এপিআই কল ছাড়াই প্রতিটি সিট ক্যালকুলেশন বা হোল্ড অপারেশনের সময় `ExpiresAt <= UtcNow` ফিল্টারের মাধ্যমে এক্সপায়ারড সিট রিলিজ হয়ে যায়।
-- ফ্রন্টএন্ডে প্রতি সেকেন্ডে কাউন্টডাউন টাইমার হিসাব করা হয়। মেয়াদ শেষ হওয়ার সাথে সাথে কোনো পেজ রিলোড ছাড়াই হোল্ডের স্ট্যাটাস `EXPIRED` হয়ে যায় এবং "Pay & Confirm" বাটন নিষ্ক্রিয় হয়ে যায়।
+## 3. Seat Holds & Automatic Expiration
+- The seat hold expiration duration is governed by the `HOLD_DURATION_SECONDS` environment variable (default: 600 seconds / 10 minutes).
+- Expired holds are released reactively at the database level using timestamp filtering (`ExpiresAt <= DateTime.UtcNow`). This eliminates the need for external background cron jobs or daemon processes to free up abandoned seats.
+- The frontend maintains an active per-second interval timer. When the countdown reaches 0, the hold state transitions to `EXPIRED` immediately without requiring a page refresh, and the "Pay & Confirm" action button is disabled.
 
-## ৪. মাল্টি-প্রসেস কনকারেন্সি হ্যান্ডলিং (Multi-Process Concurrency Safety - Bonus §১.৬)
-- একই ডাটাবেস ব্যবহার করে যদি একাধিক ব্যাকএন্ড প্রসেস বা ইনস্ট্যান্স আলাদা পোর্ট বা কন্টেইনারে চলে, তাহলেও সিট যেন কখনোই ওভারবুক না হয় তা ডাটাবেস স্তরে নিশ্চিত করা হয়েছে:
-  1. **PostgreSQL Serializable Transactions**: ট্রানজেকশনের আইসোলেশন লেভেল `Serializable` নির্ধারণ করা হয়েছে।
-  2. **Pessimistic Row-Level Locking (`SELECT ... FOR UPDATE`)**: সিট হোল্ড তৈরির সময় কাঙ্ক্ষিত ক্লাসের রো-টিকে `FOR UPDATE` লক করা হয়। ফলে একই সময়ে অন্য কোনো প্রসেস ওই ক্লাসের সিট সংখ্যা পরিবর্তন করতে পারে না।
-  3. **Atomic Validation**: লক নেওয়ার পরেই বর্তমান `heldSeats` এবং `confirmedSeats` গণনা করা হয়। যদি `held + confirmed >= totalSeats` হয়, তবে তাৎক্ষণিকভাবে `409 Conflict` রিটার্ন করা হয়।
-  4. **Idempotent Confirm**: কনফার্মেশনের ক্ষেত্রেও রো লক ব্যবহৃত হয়েছে, যার ফলে একই আবেদন একই সাথে একাধিকবার কনফার্ম করার চেষ্টা করলেও `confirmedSeats` কেবল একবারই গণনা হয়।
+## 4. Multi-Process Concurrency Safety (Bonus §1.6)
+- When multiple backend processes or containers operate simultaneously on distinct ports against the same database, seat overbooking is strictly prevented at the database engine level:
+  1. **PostgreSQL Serializable Transactions**: Transactions run under the `Serializable` isolation level.
+  2. **Pessimistic Row-Level Locking (`SELECT ... FOR UPDATE`)**: During seat hold creation, the target class row is locked using `FOR UPDATE`, ensuring no other process can concurrently inspect or mutate seat counts for that class.
+  3. **Atomic Quota Validation**: Current `heldSeats` and `confirmedSeats` are evaluated only after acquiring the row lock. If `held + confirmed >= totalSeats`, a `409 Conflict` response is immediately returned.
+  4. **Idempotent Confirmation**: Row-level locking on the hold record guarantees that duplicate or concurrent confirmation requests increment `confirmedSeats` exactly once.
 
-## ৫. পেমেন্ট ও বাতিলকরণ (Payment & Cancellation)
-- "Pay & Confirm" বাটনে চাপ দিলে কোনো থার্ড পার্টি গেটওয়ে ছাড়াই সফল পেমেন্ট ধরে নিয়ে স্ট্যাটাস `CONFIRMED` করা হয়।
-- শুধুমাত্র শিক্ষার্থীর নিজের এবং মেয়াদ না পেরোনো `HELD` আবেদনই কনফার্ম করা যায়। অন্য কারো আবেদন কনফার্ম বা ক্যান্সেল করার চেষ্টা করলে `403 Forbidden` রিটার্ন হয়।
-- একবার ভর্তি নিশ্চিত (`CONFIRMED`) হয়ে গেলে তা আর বাতিল করা যায় না।
+## 5. Payments & Cancellations
+- Clicking "Pay & Confirm" simulates a successful payment transaction without integrating an external payment gateway.
+- Only unexpired `HELD` applications belonging to the requesting student can be confirmed. Attempting to confirm or cancel an application belonging to another student returns a `403 Forbidden` response.
+- Once an admission is confirmed (`CONFIRMED`), it cannot be canceled.

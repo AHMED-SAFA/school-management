@@ -1,10 +1,10 @@
-# School Admission System (বিদ্যালয় ভর্তি ব্যবস্থা)
+# School Admission System
 
-একটি নির্ভরযোগ্য, সমকালীন (concurrent) রিকোয়েস্ট-সহনশীল অনলাইন স্কুল ভর্তি সিস্টেম। এখানে "আগে আসলে আগে পাবেন" ভিত্তিতে সীমিত আসনের ক্লাসে শিক্ষার্থীরা আসন হোল্ড ও ভর্তি ফি জমা দিয়ে নিশ্চিত করতে পারে।
+A robust, highly concurrent online school admission system built with **.NET 8**, **PostgreSQL**, **React 18+ (TypeScript & Vite)**, and **Docker**. Admissions operate on a strict **first-come, first-served** basis for limited seats per class shift. Applicants can hold seats temporarily, pay admission fees to confirm their admission, or let seats automatically release upon expiration.
 
 ---
 
-## ১. প্রযুক্তি স্ট্যাক (Tech Stack)
+## 1. Tech Stack
 
 - **Backend**: C# (.NET 8 Web API), Entity Framework Core (PostgreSQL ORM)
 - **Database**: PostgreSQL 16
@@ -13,121 +13,163 @@
 
 ---
 
-## ২. পরিবেশ কনফিগারেশন (.env Setup)
+## 2. Environment Configuration (.env Setup)
 
-প্রজেক্টের সকল সংবেদনশীল তথ্য ও পাসওয়ার্ড কনফিগারেশনের জন্য `.env` ফাইল ব্যবহৃত হয়। 
-নমুনা কনফিগারেশন দেখতে [.example.env](file:///e:/onnorokom/school-admission-system/.example.env) দেখুন।
+All confidential credentials and environment variables are strictly decoupled using `.env` files.
+See [.example.env](.example.env) for the template.
 
-`.env` ফাইলের বিষয়বস্তু:
+Sample `.env` file contents:
 ```env
+# ==========================================
+# Database Configuration (PostgreSQL)
+# ==========================================
 POSTGRES_USER=postgres
-POSTGRES_PASSWORD=safa
+POSTGRES_PASSWORD=
 POSTGRES_DB=school_admission
 POSTGRES_PORT=5432
 
+# Backend Connection String (For local development or container)
 DATABASE_URL=Host=localhost;Port=5432;Database=school_admission;Username=postgres;Password=safa
 
+# ==========================================
+# Backend Configuration
+# ==========================================
 HOLD_DURATION_SECONDS=600
 BACKEND_PORT=8080
 
+# ==========================================
+# Frontend Configuration
+# ==========================================
 VITE_API_URL=http://localhost:8080
 FRONTEND_PORT=3000
 ```
 
+> **Security Note:** `.env` files are ignored by git (`.gitignore`). Use `.example.env` as a reference when configuring new environments.
+
 ---
 
-## ৩. Docker দিয়ে এক কমান্ডে চালানো (Quick Start with Docker)
+## 3. Quick Start with Docker (Single Command)
 
-পুরো অ্যাপ্লিকেশন (PostgreSQL ডাটাবেস, ব্যাকএন্ড ও ফ্রন্টএন্ড) একসাথে চালু করার জন্য কোনো কিছু আলাদা সেটআপ করার প্রয়োজন নেই। রিপোজিটরির রুটে নিচের কমান্ডটি চালান:
+To run the entire system (PostgreSQL database, Backend API, and Frontend UI) with a single command:
 
 ```bash
 docker compose up --build
 ```
 
-অথবা উইন্ডোজে:
+Or on Windows:
 ```cmd
 run-docker.bat
 ```
-অথবা লিনাক্স/ম্যাক-এ:
+Or on Linux/macOS:
 ```bash
 chmod +x run-docker.sh && ./run-docker.sh
 ```
 
-### অ্যাক্সেস লিঙ্কসমূহ (URLs):
+### Access URLs:
 - **Frontend UI**: [http://localhost:3000](http://localhost:3000)
 - **Backend API**: [http://localhost:8080](http://localhost:8080)
 - **Swagger API Docs**: [http://localhost:8080/swagger](http://localhost:8080/swagger)
 - **PostgreSQL Database**: `localhost:5432`
   - **Database Name**: `school_admission`
   - **Username**: `postgres`
-  - **Password**: `safa`
-  *(স্থানীয় pgAdmin4 দিয়ে সরাসরি কানেক্ট করা যাবে)*
+  - **Password**: 
 
 ---
 
-## ৪. স্থানীয় মেশিনে চালানো (Running Locally without Docker)
+## 4. Running Locally without Docker
 
-আপনার মেশিনে যদি .NET 8, Node.js এবং PostgreSQL থাকে:
+If you have .NET 8 SDK, Node.js (18+), and PostgreSQL installed on your machine:
 
-### ক. ডাটাবেস সেটআপ
-pgAdmin4 বা psql-এ `school_admission` নামে একটি ডাটাবেস তৈরি করুন।
+### Step 1: Database Setup
+Create a database named `school_admission` in PostgreSQL (using pgAdmin 4 or `psql`).
 
-### খ. ব্যাকএন্ড চালু করা
+### Step 2: Run Backend
 ```bash
 cd backend
 dotnet run
 ```
-ব্যাকএন্ড স্বয়ংক্রিয়ভাবে `.env` ফাইল থেকে পাসওয়ার্ড (`safa`) লোড করে ডাটাবেসে টেবিল মাইগ্রেশন সম্পন্ন করবে এবং `http://localhost:8080` এ চালু হবে।
+The backend automatically reads credentials from `.env`, runs database migrations, and starts listening at `http://localhost:8080`.
 
-### গ. ফ্রন্টএন্ড চালু করা
+### Step 3: Run Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-ফ্রন্টএন্ড `http://localhost:3000` এ চালু হবে।
+The frontend interface starts at `http://localhost:3000`.
 
 ---
 
-## ৫. অটোমেটেড টেস্ট চালানো (Running Automated Tests)
+## 5. Running Automated Tests
 
-### ক. ব্যাকএন্ড টেস্ট (কনকারেন্সি টেস্ট সহ)
-ব্যাকএন্ডে ৬টি স্বয়ংসম্পূর্ণ টেস্ট রয়েছে, যার মধ্যে উচ্চ-চাপযুক্ত কনকারেন্সি টেস্ট অন্তর্ভুক্ত:
+### A. Backend Tests (Includes High-Load Concurrency Test)
+The backend test suite includes 6 automated tests verifying business logic, API contracts, race conditions, and concurrency safety:
+
 ```bash
 cd backend.Tests
 dotnet test
 ```
 
-#### টেস্টগুলোর বিবরণ:
-1. `CreateClass_ReturnsCreatedClass`: নতুন শ্রেণি তৈরির এপিআই টেস্ট।
-2. `HoldAndConfirmFlow_WorksCorrectly`: সিট হোল্ড করা এবং ফি দিয়ে নিশ্চিত করার পূর্ণাঙ্গ প্রবাহ।
-3. `DuplicateHold_SameStudentSameClass_Returns409`: একই শ্রেণিতে একজন শিক্ষার্থীর দ্বিতীয়বার সক্রিয় আবেদন রোধ (409 Conflict)।
-4. `CancelHold_ReturnsNoContent`: হোল্ড বাতিলের এপিআই টেস্ট (204 No Content)।
-5. `GetMyHolds_ReturnsStudentHolds`: শিক্ষার্থীর সকল আবেদনের তালিকা দেখার টেস্ট।
-6. `ConcurrencyTest_HoldsDoNotExceedTotalSeats`: একই সাথে বহু রিকোয়েস্ট পাঠিয়ে যাচাই করা যে মোট সিটের চেয়ে বেশি সিট কোনো অবস্থাতেই বরাদ্দ হয় না।
+#### Test Suite Overview:
+1. `CreateClass_ReturnsCreatedClass`: Verifies class creation endpoint.
+2. `HoldAndConfirmFlow_WorksCorrectly`: Tests end-to-end seat hold, payment confirmation, and seat count deduction.
+3. `DuplicateHold_SameStudentSameClass_Returns409`: Enforces single active application per student per class (`409 Conflict`).
+4. `CancelHold_ReturnsNoContent`: Tests hold cancellation (`204 No Content`) and seat restoration.
+5. `GetMyHolds_ReturnsStudentHolds`: Verifies retrieving all applications for a student ID.
+6. `ConcurrencyTest_HoldsDoNotExceedTotalSeats`: Dispatches 20 simultaneous concurrent requests against a class with limited seats to prove that `held + confirmed` strictly never exceeds `totalSeats`.
 
-### খ. ফ্রন্টএন্ড টেস্ট
+### B. Frontend Tests
+Unit tests for validation, live timer formatting, auto-expiration, and seat calculations:
+
 ```bash
 cd frontend
 npm run test
 ```
-১০টি ইউনিট টেস্ট ফ্রন্টএন্ডের ১৭-সংখ্যার জন্ম নিবন্ধন ভ্যালিডেশন, রিয়েল-টাইম কাউন্টডাউন, মেয়াদোত্তীর্ণের পর বাটন নিষ্ক্রিয়করণ এবং সিট হিসাব যাচাই করে।
+All 10 Vitest unit tests pass.
 
 ---
 
-## ৬. মূল বৈশিষ্ট্য ও নিয়মাবলী (Key Features & Rules)
+## 6. Key Features & Business Rules
 
-1. **কঠোর কনকারেন্সি নিরাপত্তা**: PostgreSQL `Serializable` ট্রানজেকশন এবং রো-লেভেল পেসিমিস্টিক লকিং (`SELECT ... FOR UPDATE`) ব্যবহারের মাধ্যমে নিশ্চিত করা হয়েছে যে ব্যাকএন্ডের একাধিক প্রসেস সমান্তরালে চললেও `heldSeats + confirmedSeats` কখনোই `totalSeats` অতিক্রম করবে না।
-2. **লগইনহীন কিন্তু সংরক্ষিত পরিচয়**: শিক্ষার্থীর ১৭-সংখ্যার জন্ম নিবন্ধন নম্বর পরিচয় হিসেবে ব্যবহৃত হয় এবং ব্রাউজারের `localStorage`-এ সংরক্ষিত থাকে। পেজ রিফ্রেশ বা ব্রাউজার পুনরায় খুললেও আবেদন অক্ষুণ্ণ থাকে।
-3. **স্বয়ংক্রিয় আসন মুক্তি (Auto Expiry)**: `HOLD_DURATION_SECONDS` (ডিফল্ট: ৬০০ সেকেন্ড) পার হলেই সিট অন্য শিক্ষার্থীর জন্য উন্মুক্ত হয়। ফ্রন্টএন্ডের টাইমার শেষ হওয়া মাত্র পেজ রিলোড ছাড়াই `EXPIRED` প্রদর্শিত হয় এবং ফি জমা বাটন বন্ধ হয়ে যায়।
-4. **সিট সংখ্যার রিয়েলটাইম আপডেট**: পেজ রিলোড ছাড়াই প্রতি কয়েক সেকেন্ড পর পর শ্রেণি তালিকার সিট সংখ্যা হালনাগাদ হয়।
-5. **সহজবোধ্য ত্রুটি বার্তা**: সিট শেষ, ভুল ইনপুট বা মেয়াদ শেষের মতো যেকোনো পরিস্থিতিতে ব্যবহারকারীর বোধগম্য বার্তা প্রদর্শিত হয়।
+1. **Strict Multi-Process Concurrency Safety (Bonus §1.6)**:
+   - Uses PostgreSQL **`Serializable` transaction isolation** combined with pessimistic row-level locking (**`SELECT ... FOR UPDATE`**).
+   - Even when multiple backend server processes run concurrently across different ports or containers against the same database, `heldSeats + confirmedSeats` will never exceed `totalSeats`.
+2. **Loginless Persistent Student Identity**:
+   - The student's 17-digit Birth Registration Number is used as the identity header (`X-Student-Id`).
+   - Saved in browser `localStorage` so refreshing or reopening the browser preserves active applications.
+3. **Automatic Seat Release (Auto-Expiry)**:
+   - Hold durations default to 600 seconds (`HOLD_DURATION_SECONDS`).
+   - Expired holds are released reactively on every status evaluation without requiring background daemons.
+   - The UI runs a real-time countdown; upon reaching 0, status automatically changes to `EXPIRED` and the "Pay & Confirm" button disables without page reload.
+4. **Live Seat Updates**:
+   - Class seat counts update periodically in the UI without requiring page reload.
+5. **Idempotent Confirmations**:
+   - Multiple confirm calls for the same hold confirm once and do not inflate confirmed seat counts.
+6. **Graceful User-Friendly Errors**:
+   - Returns clear, actionable alert messages for duplicate applications, exhausted seats, or expired holds.
 
 ---
 
-## ৭. ফাইল ডিরেক্টরি পরিচিতি (Directory Structure)
+## 7. API Specification
 
-```
+Base URL: `http://localhost:8080`
+
+| Method | Path | Required Headers | Description | Status Code |
+| :--- | :--- | :--- | :--- | :---: |
+| `POST` | `/classes` | - | Create new class | `201 Created` |
+| `GET` | `/classes` | - | List all classes with seat counts | `200 OK` |
+| `GET` | `/classes/{classId}` | - | Get seat status of a specific class | `200 OK` |
+| `POST` | `/classes/{classId}/holds` | `X-Student-Id: <17_digits>` | Hold seat for student (409 if full/duplicate) | `201 Created` |
+| `GET` | `/holds/{holdId}` | - | Check status of a hold | `200 OK` |
+| `POST` | `/holds/{holdId}/confirm` | `X-Student-Id: <17_digits>` | Pay fee and confirm admission | `200 OK` |
+| `DELETE`| `/holds/{holdId}` | `X-Student-Id: <17_digits>` | Cancel hold | `204 No Content` |
+| `GET` | `/me/holds` | `X-Student-Id: <17_digits>` | List all applications for student | `200 OK` |
+
+---
+
+## 8. Directory Structure
+
+```text
 school-admission-system/
 ├── backend/                  # .NET 8 Web API
 │   ├── Controllers/          # REST API Controllers (Classes, Holds)
@@ -135,24 +177,30 @@ school-admission-system/
 │   ├── Models/               # Entities & DTOs
 │   ├── Services/             # Business Logic & Concurrency Control
 │   ├── Dockerfile            # Multi-stage Docker build for backend
-│   ├── .env                  # Backend environment config
-│   ├── .example.env          # Backend template
-│   └── Program.cs
-├── backend.Tests/            # xUnit automated tests & Concurrency test
+│   ├── .env                  # Backend environment variables
+│   ├── .example.env          # Backend environment template
+│   └── Program.cs            # App configuration & .env loader
+├── backend.Tests/            # xUnit tests & Concurrency test suite
 ├── frontend/                 # React 18 + TS + Vite + MUI
 │   ├── src/
 │   │   ├── api/              # Axios API client with X-Student-Id
 │   │   ├── components/       # ClassList, MyHolds, CreateClassDialog
-│   │   └── tests/            # Vitest frontend tests
+│   │   ├── tests/            # Vitest unit tests
+│   │   ├── types/            # TypeScript data interfaces
+│   │   ├── App.tsx           # Main UI container & state
+│   │   └── main.tsx
 │   ├── Dockerfile            # Frontend container setup
-│   ├── .env                  # Frontend environment config
-│   └── .example.env          # Frontend template
+│   ├── .env                  # Frontend environment variables
+│   ├── .example.env          # Frontend environment template
+│   ├── package.json
+│   └── vite.config.ts
 ├── .env                      # Root environment configuration
 ├── .example.env              # Root environment template
+├── .gitignore                # Git exclusions (credentials, build artifacts)
 ├── docker-compose.yml        # Multi-container orchestration (DB, API, UI)
-├── run-docker.bat            # Windows quick-run script
-├── run-docker.sh             # Linux/macOS quick-run script
-├── ASSUMPTIONS.md            # Design decisions & multi-process concurrency
-├── AI_USAGE.md               # AI assistance & verification disclosure
-└── README.md                 # Project documentation & run guide
+├── run-docker.bat            # Windows one-click run script
+├── run-docker.sh             # Linux/macOS one-click run script
+├── ASSUMPTIONS.md            # Technical assumptions & design choices
+├── AI_USAGE.md               # AI tooling transparency report
+└── README.md                 # Complete project documentation
 ```
