@@ -1,0 +1,3 @@
+#!/bin/bash
+echo "Starting School Admission System with Docker Compose..."
+docker compose up --build
